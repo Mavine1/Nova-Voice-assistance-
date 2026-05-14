@@ -23,12 +23,16 @@ import Reload from "@/assets/svgs/reload";
 import { useAuth } from "@/contexts/AuthContext";
 import { Colors } from "@/constants/Colors";
 
-// Get API key from environment - fallback to empty if not set
-const getApiKey = () => {
-  // Try multiple ways to get the API key
-  const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
-  return apiKey;
-};
+// Get API keys from environment
+const getOpenAIApiKey = () => process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
+const getGeminiApiKey = () => process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+
+const MODEL_CANDIDATES = [
+  "gemini-2.0-flash-exp",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5",
+];
 
 export default function HomeScreen() {
   const { logout, user } = useAuth();
@@ -135,7 +139,7 @@ export default function HomeScreen() {
   };
 
   const sendAudioToWhisper = async (uri: string) => {
-    const apiKey = getApiKey();
+    const apiKey = getOpenAIApiKey();
     if (!apiKey) {
       return "API key not configured. Please add your OpenAI API key in the .env file.";
     }
