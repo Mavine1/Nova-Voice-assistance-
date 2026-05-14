@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -32,16 +33,20 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(routes)/onboarding/index" />
-        <Stack.Screen name="(routes)/home/index" />
-      </Stack>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(routes)/onboarding/index" />
+          <Stack.Screen name="(routes)/login/index" />
+          <Stack.Screen name="(routes)/signup/index" />
+          <Stack.Screen name="(routes)/home/index" />
+        </Stack>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
