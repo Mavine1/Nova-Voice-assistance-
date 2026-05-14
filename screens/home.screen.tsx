@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   View,
   Platform,
+  TextInput,
 } from "react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { scale, verticalScale } from "react-native-size-matters";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -21,26 +22,30 @@ import Regenerate from "@/assets/svgs/regenerate";
 import Reload from "@/assets/svgs/reload";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Get API key from environment - fallback to empty if not set
+const getApiKey = () => {
+  // Try multiple ways to get the API key
+  const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
+  return apiKey;
+};
+
 export default function HomeScreen() {
   const { logout, user } = useAuth();
   const [text, setText] = useState("");
+  const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording>();
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [AIResponse, setAIResponse] = useState(false);
   const [AISpeaking, setAISpeaking] = useState(false);
+  const [showInput, setShowInput] = useState(false);
   const lottieRef = useRef<LottieView>(null);
 
-  // get microphone permission
   const getMicrophonePermission = async () => {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
-
       if (!granted) {
-        Alert.alert(
-          "Permission",
-          "Please grant permission to access microphone"
-        );
+        Alert.alert("Permission", "Please grant permission to access microphone");
         return false;
       }
       return true;
@@ -69,24 +74,18 @@ export default function HomeScreen() {
       linearPCMIsBigEndian: false,
       linearPCMIsFloat: false,
     },
-    web: {
-      mimeType: "audio/webm",
-      bitsPerSecond: 128000,
-    },
   };
 
   const startRecording = async () => {
-    // Web platform doesn't support expo-av recording, show a message
+    // Web platform - show input field instead
     if (Platform.OS === "web") {
-      Alert.alert(
-        "Web Recording",
-        "Voice recording is not supported in web browser. Please use the mobile app for voice features, or type a message below."
-      );
+      setShowInput(true);
       return;
     }
 
     const hasPermission = await getMicrophonePermission();
     if (!hasPermission) return;
+
     try {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
@@ -97,12 +96,18 @@ export default function HomeScreen() {
       setRecording(recording);
     } catch (error) {
       console.log("Failed to start Recording", error);
+      setIsRecording(false);
+      setRecording(null);
       Alert.alert("Error", "Failed to start recording. Please try again.");
     }
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
+    if (!recording) {
+      console.log("No recording to stop");
+      setIsRecording(false);
+      return;
+    }
 
     try {
       setIsRecording(false);
@@ -113,28 +118,34 @@ export default function HomeScreen() {
       });
 
       const uri = recording.getURI();
+      setRecording(null);
 
-      // send audio to whisper API for transcription
-      const transcript = await sendAudioToWhisper(uri!);
-
-      setText(transcript);
-
-      // send the transcript to gpt-4 API for response
-      await sendToGpt(transcript);
+      if (uri) {
+        const transcript = await sendAudioToWhisper(uri);
+        setText(transcript);
+        await sendToGpt(transcript);
+      }
     } catch (error) {
       console.log("Failed to stop Recording", error);
-      Alert.alert("Error", "Failed to stop recording");
+      setIsRecording(false);
+      setRecording(null);
+      Alert.alert("Error", "Failed to process recording");
     }
   };
 
   const sendAudioToWhisper = async (uri: string) => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      return "API key not configured. Please add your OpenAI API key in the .env file.";
+    }
+
     try {
-      const formData: any = new FormData();
+      const formData = new FormData();
       formData.append("file", {
         uri,
         type: "audio/wav",
         name: "recording.wav",
-      });
+      } as any);
       formData.append("model", "whisper-1");
 
       const response = await axios.post(
@@ -142,20 +153,27 @@ export default function HomeScreen() {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY}`,
+            Authorization: `Bearer ${apiKey}`,
             "Content-Type": "multipart/form-data",
           },
         }
       );
       return response.data.text;
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.log("Whisper error:", error.response?.data || error.message);
       return "Could not transcribe audio. Please try again.";
     }
   };
 
-  // send text to gpt4 API
   const sendToGpt = async (inputText: string) => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      setText("API key not configured. Please add your OpenAI API key in the .env file.");
+      setLoading(false);
+      setAIResponse(true);
+      return;
+    }
+
     try {
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
@@ -175,22 +193,33 @@ export default function HomeScreen() {
         },
         {
           headers: {
-            Authorization: `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY}`,
+            Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
         }
       );
-      setText(response.data.choices[0].message.content);
+      const gptResponse = response.data.choices[0].message.content;
+      setText(gptResponse);
       setLoading(false);
       setAIResponse(true);
-      await speakText(response.data.choices[0].message.content);
-      return response.data.choices[0].message.content;
-    } catch (error) {
-      console.log("Error sending text to GPT-4", error);
+      await speakText(gptResponse);
+    } catch (error: any) {
+      console.log("GPT error:", error.response?.data || error.message);
       setLoading(false);
       setAIResponse(true);
-      setText("I'm having trouble connecting to the AI service. Please check your internet connection and try again.");
+      if (error.response?.status === 401) {
+        setText("Invalid API key. Please check your OpenAI API key in the .env file.");
+      } else {
+        setText("I'm having trouble connecting to the AI service. Please check your internet connection and try again.");
+      }
     }
+  };
+
+  const handleSubmitText = async () => {
+    if (!inputText.trim()) return;
+    setLoading(true);
+    setText(inputText);
+    await sendToGpt(inputText);
   };
 
   const speakText = async (textToSpeak: string) => {
@@ -233,7 +262,6 @@ export default function HomeScreen() {
     >
       <StatusBar barStyle={"light-content"} />
 
-      {/* back shadows */}
       <Image
         source={require("../assets/main/blur.png")}
         style={{
@@ -262,6 +290,7 @@ export default function HomeScreen() {
               setIsRecording(false);
               setAIResponse(false);
               setText("");
+              setShowInput(false);
             }}
           >
             <AntDesign name="arrowleft" size={scale(20)} color="#fff" />
@@ -299,7 +328,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : (
           <>
-            {!isRecording ? (
+            {!isRecording && !showInput ? (
               <>
                 {AIResponse ? (
                   <View>
@@ -332,7 +361,7 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 )}
               </>
-            ) : (
+            ) : isRecording ? (
               <TouchableOpacity onPress={stopRecording}>
                 <LottieView
                   source={require("../assets/animations/animation.json")}
@@ -342,10 +371,30 @@ export default function HomeScreen() {
                   style={{ width: scale(250), height: scale(250) }}
                 />
               </TouchableOpacity>
-            )}
+            ) : null}
           </>
         )}
       </View>
+
+      {/* Text Input for Web */}
+      {showInput && !AIResponse && (
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Type your message..."
+            placeholderTextColor="#9CA3AF"
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+          />
+          <TouchableOpacity
+            style={styles.sendButton}
+            onPress={handleSubmitText}
+          >
+            <FontAwesome name="send" size={scale(18)} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Status Text */}
       <View
@@ -369,7 +418,9 @@ export default function HomeScreen() {
             ? "Processing your request..."
             : text || (isRecording
               ? "Listening... Tap to stop"
-              : "Tap the microphone to start recording!")}
+              : showInput
+                ? "Type a message and tap send"
+                : "Tap the microphone to start recording!")}
         </Text>
       </View>
 
@@ -449,5 +500,30 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     padding: scale(8),
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: scale(25),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(8),
+    width: scale(300),
+    marginBottom: verticalScale(20),
+  },
+  textInput: {
+    flex: 1,
+    color: "#fff",
+    fontSize: scale(14),
+    maxHeight: scale(80),
+  },
+  sendButton: {
+    backgroundColor: Colors?.primary || "#6366F1",
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: scale(8),
   },
 });
