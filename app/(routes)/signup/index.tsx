@@ -68,7 +68,7 @@ export default function SignupScreen() {
     } catch (error: any) {
       Alert.alert(
         'Signup Failed',
-        error.response?.data?.error || 'Something went wrong. Please try again.'
+        error.message || 'Something went wrong. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -77,7 +77,9 @@ export default function SignupScreen() {
 
   return (
     <LinearGradient
-      colors={[Colors.surface, Colors.background]}
+      colors={[Colors.surface, Colors.background, '#0a0a1a']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -87,7 +89,16 @@ export default function SignupScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
+          {/* Logo Area */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>N</Text>
+            </View>
+            <Text style={styles.appName}>Nova</Text>
+          </View>
+
           <View style={styles.header}>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
@@ -125,7 +136,7 @@ export default function SignupScreen() {
             />
 
             <Button
-              title="Sign Up"
+              title="Create Account"
               onPress={handleSignup}
               loading={loading}
               style={styles.button}
@@ -138,6 +149,10 @@ export default function SignupScreen() {
               <Text style={styles.linkText}>Sign In</Text>
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.demoNote}>
+            Demo mode: Enter any email and password to try the app
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -153,30 +168,59 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: scale(24),
-    paddingTop: verticalScale(60),
+    paddingHorizontal: scale(28),
+    paddingTop: verticalScale(40),
     paddingBottom: verticalScale(40),
   },
-  header: {
+  logoContainer: {
     alignItems: 'center',
-    marginBottom: verticalScale(40),
+    marginBottom: verticalScale(32),
+  },
+  logoCircle: {
+    width: scale(70),
+    height: scale(70),
+    borderRadius: scale(35),
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoText: {
+    fontSize: scale(35),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  appName: {
+    fontSize: scale(26),
+    fontWeight: '700',
+    color: Colors.text,
+    marginTop: verticalScale(10),
+  },
+  header: {
+    marginBottom: verticalScale(28),
   },
   title: {
-    fontSize: scale(32),
+    fontSize: scale(28),
     fontWeight: '700',
     color: Colors.text,
     marginBottom: verticalScale(8),
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: scale(16),
+    fontSize: scale(15),
     color: Colors.textMuted,
     textAlign: 'center',
+    lineHeight: 22,
   },
   form: {
     flex: 1,
   },
   button: {
-    marginTop: verticalScale(24),
+    marginTop: verticalScale(16),
   },
   footer: {
     flexDirection: 'row',
@@ -185,12 +229,20 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(32),
   },
   footerText: {
-    fontSize: scale(14),
+    fontSize: scale(15),
     color: Colors.textMuted,
   },
   linkText: {
-    fontSize: scale(14),
+    fontSize: scale(15),
     fontWeight: '600',
     color: Colors.primary,
+  },
+  demoNote: {
+    fontSize: scale(12),
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: verticalScale(24),
+    fontStyle: 'italic',
+    opacity: 0.7,
   },
 });

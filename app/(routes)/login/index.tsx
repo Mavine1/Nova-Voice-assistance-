@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { scale, verticalScale } from 'react-native-size-matters';
@@ -53,7 +54,7 @@ export default function LoginScreen() {
     } catch (error: any) {
       Alert.alert(
         'Login Failed',
-        error.response?.data?.error || 'Something went wrong. Please try again.'
+        error.message || 'Something went wrong. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -62,7 +63,9 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={[Colors.surface, Colors.background]}
+      colors={[Colors.surface, Colors.background, '#0a0a1a']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -72,11 +75,20 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
+          {/* Logo Area */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>N</Text>
+            </View>
+            <Text style={styles.appName}>Nova</Text>
+          </View>
+
           <View style={styles.header}>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>
-              Sign in to continue your journey with Nova
+              Sign in to continue your AI journey
             </Text>
           </View>
 
@@ -100,6 +112,10 @@ export default function LoginScreen() {
               error={errors.password}
             />
 
+            <TouchableOpacity style={styles.forgotPassword}>
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </TouchableOpacity>
+
             <Button
               title="Sign In"
               onPress={handleLogin}
@@ -114,6 +130,10 @@ export default function LoginScreen() {
               <Text style={styles.linkText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.demoNote}>
+            Demo mode: Enter any email and password to try the app
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -129,30 +149,69 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: scale(24),
-    paddingTop: verticalScale(80),
+    paddingHorizontal: scale(28),
+    paddingTop: verticalScale(60),
     paddingBottom: verticalScale(40),
   },
-  header: {
+  logoContainer: {
     alignItems: 'center',
     marginBottom: verticalScale(40),
   },
+  logoCircle: {
+    width: scale(80),
+    height: scale(80),
+    borderRadius: scale(40),
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoText: {
+    fontSize: scale(40),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  appName: {
+    fontSize: scale(28),
+    fontWeight: '700',
+    color: Colors.text,
+    marginTop: verticalScale(12),
+  },
+  header: {
+    marginBottom: verticalScale(32),
+  },
   title: {
-    fontSize: scale(32),
+    fontSize: scale(28),
     fontWeight: '700',
     color: Colors.text,
     marginBottom: verticalScale(8),
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: scale(16),
+    fontSize: scale(15),
     color: Colors.textMuted,
     textAlign: 'center',
+    lineHeight: 22,
   },
   form: {
     flex: 1,
   },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginTop: verticalScale(-8),
+    marginBottom: verticalScale(16),
+  },
+  forgotText: {
+    fontSize: scale(14),
+    color: Colors.primary,
+    fontWeight: '500',
+  },
   button: {
-    marginTop: verticalScale(24),
+    marginTop: verticalScale(8),
   },
   footer: {
     flexDirection: 'row',
@@ -161,12 +220,20 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(32),
   },
   footerText: {
-    fontSize: scale(14),
+    fontSize: scale(15),
     color: Colors.textMuted,
   },
   linkText: {
-    fontSize: scale(14),
+    fontSize: scale(15),
     fontWeight: '600',
     color: Colors.primary,
+  },
+  demoNote: {
+    fontSize: scale(12),
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: verticalScale(24),
+    fontStyle: 'italic',
+    opacity: 0.7,
   },
 });

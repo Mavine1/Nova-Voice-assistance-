@@ -15,7 +15,7 @@ export default function Input({ label, error, ...props }: InputProps) {
       <TextInput
         style={[
           styles.input,
-          error && styles.inputError,
+          error ? styles.inputError : undefined,
         ]}
         placeholderTextColor={Colors.textMuted}
         {...props}
@@ -28,31 +28,34 @@ export default function Input({ label, error, ...props }: InputProps) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(18),
   },
   label: {
     fontSize: scale(14),
-    fontWeight: '500',
+    fontWeight: '600',
     color: Colors.text,
     marginBottom: verticalScale(8),
+    letterSpacing: 0.3,
   },
   input: {
     width: '100%',
-    height: verticalScale(52),
-    backgroundColor: Colors.background,
-    borderRadius: scale(12),
-    paddingHorizontal: scale(16),
+    height: verticalScale(56),
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: scale(14),
+    paddingHorizontal: scale(18),
     fontSize: scale(16),
     color: Colors.text,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.border,
   },
   inputError: {
     borderColor: Colors.error,
+    borderWidth: 2,
   },
   error: {
-    fontSize: scale(12),
+    fontSize: scale(13),
     color: Colors.error,
-    marginTop: verticalScale(4),
+    marginTop: verticalScale(6),
+    fontWeight: '500',
   },
 });

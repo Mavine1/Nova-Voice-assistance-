@@ -1,51 +1,37 @@
-import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { findUserByEmail } from '@/models/User';
+// This file uses Next.js server API which is not available in Expo
+// These routes should be handled by a separate backend service
 
-export async function POST(request: NextRequest) {
+interface RequestBody {
+  email: string;
+  password: string;
+}
+
+interface ResponseBody {
+  error?: string;
+  token?: string;
+  user?: { email: string };
+}
+
+// Mock implementation - replace with actual backend API call
+export async function login(request: RequestBody): Promise<ResponseBody> {
   try {
-    const { email, password } = await request.json();
+    const { email, password } = request;
 
     if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      );
+      return { error: 'Email and password are required' };
     }
 
-    const user = await findUserByEmail(email);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
+    // TODO: Replace with actual API call to your backend
+    // const response = await fetch('YOUR_API_URL/auth/login', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ email, password })
+    // });
+    // return response.json();
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
-    const secret = process.env.JWT_SECRET || 'default_secret_change_me';
-    const token = jwt.sign(
-      { userId: user._id?.toString(), email: user.email },
-      secret,
-      { expiresIn: '7d' }
-    );
-
-    return NextResponse.json({
-      token,
-      user: { email: user.email }
-    });
+    return { error: 'Login not implemented - connect to backend' };
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return { error: 'Internal server error' };
   }
 }
