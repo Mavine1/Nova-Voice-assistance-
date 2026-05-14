@@ -45,6 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
       if (storedToken) {
         setToken(storedToken);
+        // Load user data including firstName
+        const storedUserData = await AsyncStorage.getItem(USER_DATA_KEY);
+        let userData: User = { email: '' };
+        if (storedUserData) {
+          userData = JSON.parse(storedUserData);
+        }
         // Try to validate token with backend, fallback to demo mode
         try {
           const response = await axios.get(`${API_URL}/api/auth/me`, {
@@ -55,9 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           // Backend not available, check if demo mode
           if (storedToken.startsWith('demo_')) {
-            setUser({ email: DEMO_USER.email });
+            setUser({ email: DEMO_USER.email, firstName: userData.firstName });
           } else {
             await AsyncStorage.removeItem(TOKEN_KEY);
+            await AsyncStorage.removeItem(USER_DATA_KEY);
           }
         }
       }
@@ -98,16 +105,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string) => {
+  const signup = async (email: string, password: string, firstName?: string) => {
     try {
       // Try to connect to backend first
       const response = await axios.post(`${API_URL}/api/auth/signup`, {
         email,
         password,
+        firstName,
       }, { timeout: 5000 });
 
       const { token: newToken, user: userData } = response.data;
       await AsyncStorage.setItem(TOKEN_KEY, newToken);
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
     } catch (error: any) {
@@ -116,8 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Demo mode - accept any signup
         console.log('Backend not available, using demo mode');
         await AsyncStorage.setItem(TOKEN_KEY, DEMO_USER.token);
+        const userData = { email, firstName };
+        await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
         setToken(DEMO_USER.token);
-        setUser({ email });
+        setUser(userData);
       } else if (error.response?.status === 400) {
         throw new Error(error.response.data.error || 'User already exists');
       } else {
