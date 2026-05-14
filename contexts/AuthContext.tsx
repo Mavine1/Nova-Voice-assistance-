@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { router } from 'expo-router';
 
 interface User {
   email: string;
+  firstName?: string;
 }
 
 interface AuthContextType {
@@ -19,6 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_KEY = 'auth_token';
+const USER_DATA_KEY = 'user_data';
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
 const DEMO_MODE_KEY = 'demo_mode';
 
