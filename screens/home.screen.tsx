@@ -244,7 +244,7 @@ export default function HomeScreen() {
         {loading ? (
           <TouchableOpacity>
             <LottieView
-              source={require("@/assets/animations/loading.json")}
+              source={require("../assets/animations/loading.json")}
               autoPlay
               loop
               speed={1.3}
@@ -259,7 +259,7 @@ export default function HomeScreen() {
                   <View>
                     <LottieView
                       ref={lottieRef}
-                      source={require("@/assets/animations/ai-speaking.json")}
+                      source={require("../assets/animations/ai-speaking.json")}
                       autoPlay={false}
                       loop={false}
                       style={{ width: scale(250), height: scale(250) }}
@@ -289,7 +289,7 @@ export default function HomeScreen() {
             ) : (
               <TouchableOpacity onPress={stopRecording}>
                 <LottieView
-                  source={require("@/assets/animations/animation.json")}
+                  source={require("../assets/animations/animation.json")}
                   autoPlay
                   loop
                   speed={1.3}
