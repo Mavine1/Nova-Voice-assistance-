@@ -171,49 +171,54 @@ export default function HomeScreen() {
   };
 
   const sendToGpt = async (inputText: string) => {
-    const apiKey = getApiKey();
+    const apiKey = getGeminiApiKey();
     if (!apiKey) {
-      setText("API key not configured. Please add your OpenAI API key in the .env file.");
+      setText("Gemini API key not configured. Please add EXPO_PUBLIC_GEMINI_API_KEY to the .env file.");
       setLoading(false);
       setAIResponse(true);
       return;
     }
 
     try {
-      const response = await axios.post(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          model: "gpt-3.5-turbo",
-          messages: [
+      const systemPrompt = "You are Nova, a friendly AI assistant. You are helpful, concise, and respond naturally. Provide clear and helpful answers.";
+
+      let lastError = null;
+      for (const model of MODEL_CANDIDATES) {
+        try {
+          const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
-              role: "system",
-              content:
-                "You are Nova, a friendly AI assistant. You are helpful, concise, and respond naturally. Provide clear and helpful answers.",
-            },
-            {
-              role: "user",
-              content: inputText,
-            },
-          ],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
+              contents: [{ parts: [{ text: inputText }] }],
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 1000,
+              },
+            }
+          );
+
+          if (response.data.candidates && response.data.candidates[0]) {
+            const geminiResponse = response.data.candidates[0].content.parts[0].text;
+            setText(geminiResponse);
+            setLoading(false);
+            setAIResponse(true);
+            await speakText(geminiResponse);
+            return;
+          }
+        } catch (error: any) {
+          lastError = error;
+          console.log(`Gemini model ${model} error:`, error.response?.data || error.message);
+          // Try next model
         }
-      );
-      const gptResponse = response.data.choices[0].message.content;
-      setText(gptResponse);
-      setLoading(false);
-      setAIResponse(true);
-      await speakText(gptResponse);
+      }
+
+      throw lastError;
     } catch (error: any) {
-      console.log("GPT error:", error.response?.data || error.message);
+      console.log("Gemini error:", error.response?.data || error.message);
       setLoading(false);
       setAIResponse(true);
-      if (error.response?.status === 401) {
-        setText("Invalid API key. Please check your OpenAI API key in the .env file.");
+      if (error.response?.status === 403 || error.response?.data?.error?.message?.includes('API_KEY')) {
+        setText("Invalid Gemini API key. Please check your key in the .env file.");
       } else {
         setText("I'm having trouble connecting to the AI service. Please check your internet connection and try again.");
       }
