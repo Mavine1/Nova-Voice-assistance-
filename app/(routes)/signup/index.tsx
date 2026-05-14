@@ -19,11 +19,13 @@ import { Colors } from '@/constants/Colors';
 
 export default function SignupScreen() {
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{
     email?: string;
+    firstName?: string;
     password?: string;
     confirmPassword?: string;
   }>({});
@@ -32,6 +34,7 @@ export default function SignupScreen() {
   const validateForm = () => {
     const newErrors: {
       email?: string;
+      firstName?: string;
       password?: string;
       confirmPassword?: string;
     } = {};
@@ -40,6 +43,10 @@ export default function SignupScreen() {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Please enter a valid email';
+    }
+
+    if (!firstName) {
+      newErrors.firstName = 'First name is required';
     }
 
     if (!password) {
@@ -63,7 +70,7 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      await signup(email, password);
+      await signup(email, password, firstName);
       router.replace('/(routes)/home');
     } catch (error: any) {
       Alert.alert(
@@ -107,6 +114,15 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.form}>
+            <Input
+              label="First Name"
+              placeholder="Enter your first name"
+              value={firstName}
+              onChangeText={setFirstName}
+              autoCapitalize="words"
+              error={errors.firstName}
+            />
+
             <Input
               label="Email"
               placeholder="Enter your email"

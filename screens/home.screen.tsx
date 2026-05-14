@@ -303,7 +303,7 @@ export default function HomeScreen() {
             <FontAwesome name="user" size={scale(18)} color="#fff" />
           </View>
           <View style={styles.userDetails}>
-            <Text style={styles.userGreeting}>Hello!</Text>
+            <Text style={styles.userGreeting}>Hello{user?.firstName ? `, ${user.firstName}!` : '!'}</Text>
             <Text style={styles.userEmail}>{user?.email || 'User'}</Text>
           </View>
         </View>
