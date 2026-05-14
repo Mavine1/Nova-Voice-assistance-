@@ -21,6 +21,7 @@ import * as Speech from "expo-speech";
 import Regenerate from "@/assets/svgs/regenerate";
 import Reload from "@/assets/svgs/reload";
 import { useAuth } from "@/contexts/AuthContext";
+import { Colors } from "@/constants/Colors";
 
 // Get API key from environment - fallback to empty if not set
 const getApiKey = () => {
