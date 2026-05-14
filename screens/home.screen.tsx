@@ -18,8 +18,10 @@ import LottieView from "lottie-react-native";
 import * as Speech from "expo-speech";
 import Regenerate from "@/assets/svgs/regenerate";
 import Reload from "@/assets/svgs/reload";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function HomeScreen() {
+  const { logout } = useAuth();
   const [text, setText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -239,6 +241,25 @@ export default function HomeScreen() {
           <AntDesign name="arrowleft" size={scale(20)} color="#fff" />
         </TouchableOpacity>
       )}
+
+      {/* Logout button */}
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          top: verticalScale(50),
+          right: scale(20),
+        }}
+        onPress={async () => {
+          Alert.alert('Logout', 'Are you sure you want to logout?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Logout', style: 'destructive', onPress: async () => {
+              await logout();
+            }},
+          ]);
+        }}
+      >
+        <AntDesign name="logout" size={scale(20)} color="#fff" />
+      </TouchableOpacity>
 
       <View style={{ marginTop: verticalScale(-40) }}>
         {loading ? (

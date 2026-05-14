@@ -49,7 +49,7 @@ export default function OnBoardingScreen() {
       setActiveIndex(nextIndex);
     } else {
        await AsyncStorage.setItem('onboarding', 'true');
-       router.push("/(routes)/home");
+       router.push("/(routes)/login");
     }
   }
 
