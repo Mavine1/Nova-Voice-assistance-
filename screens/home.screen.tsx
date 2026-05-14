@@ -204,7 +204,7 @@ export default function HomeScreen() {
 
       {/* back shadows */}
       <Image
-        source={require("@/assets/main/blur.png")}
+        source={require("../assets/main/blur.png")}
         style={{
           position: "absolute",
           right: scale(-15),
@@ -213,7 +213,7 @@ export default function HomeScreen() {
         }}
       />
       <Image
-        source={require("@/assets/main/purple-blur.png")}
+        source={require("../assets/main/purple-blur.png")}
         style={{
           position: "absolute",
           left: scale(-15),
