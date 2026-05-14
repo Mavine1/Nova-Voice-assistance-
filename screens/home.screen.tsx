@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,7 +22,7 @@ import Reload from "@/assets/svgs/reload";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function HomeScreen() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [text, setText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -68,9 +69,22 @@ export default function HomeScreen() {
       linearPCMIsBigEndian: false,
       linearPCMIsFloat: false,
     },
+    web: {
+      mimeType: "audio/webm",
+      bitsPerSecond: 128000,
+    },
   };
 
   const startRecording = async () => {
+    // Web platform doesn't support expo-av recording, show a message
+    if (Platform.OS === "web") {
+      Alert.alert(
+        "Web Recording",
+        "Voice recording is not supported in web browser. Please use the mobile app for voice features, or type a message below."
+      );
+      return;
+    }
+
     const hasPermission = await getMicrophonePermission();
     if (!hasPermission) return;
     try {
@@ -83,20 +97,22 @@ export default function HomeScreen() {
       setRecording(recording);
     } catch (error) {
       console.log("Failed to start Recording", error);
-      Alert.alert("Error", "Failed to start recording");
+      Alert.alert("Error", "Failed to start recording. Please try again.");
     }
   };
 
   const stopRecording = async () => {
+    if (!recording) return;
+
     try {
       setIsRecording(false);
       setLoading(true);
-      await recording?.stopAndUnloadAsync();
+      await recording.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
       });
 
-      const uri = recording?.getURI();
+      const uri = recording.getURI();
 
       // send audio to whisper API for transcription
       const transcript = await sendAudioToWhisper(uri!);
@@ -134,11 +150,12 @@ export default function HomeScreen() {
       return response.data.text;
     } catch (error) {
       console.log(error);
+      return "Could not transcribe audio. Please try again.";
     }
   };
 
   // send text to gpt4 API
-  const sendToGpt = async (text: string) => {
+  const sendToGpt = async (inputText: string) => {
     try {
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
@@ -148,11 +165,11 @@ export default function HomeScreen() {
             {
               role: "system",
               content:
-                "You are Artifonia, a friendly AI assistant who responds naturally and referes to yourself as Artifonia when asked for your name. You are a helpful assistant who can answer questions and help with tasks. You must always respond in English, no matter the input language,and provide helpful, clear answers",
+                "You are Nova, a friendly AI assistant. You are helpful, concise, and respond naturally. Provide clear and helpful answers.",
             },
             {
               role: "user",
-              content: text,
+              content: inputText,
             },
           ],
         },
@@ -170,10 +187,13 @@ export default function HomeScreen() {
       return response.data.choices[0].message.content;
     } catch (error) {
       console.log("Error sending text to GPT-4", error);
+      setLoading(false);
+      setAIResponse(true);
+      setText("I'm having trouble connecting to the AI service. Please check your internet connection and try again.");
     }
   };
 
-  const speakText = async (text: string) => {
+  const speakText = async (textToSpeak: string) => {
     setAISpeaking(true);
     const options = {
       voice: "com.apple.ttsbundle.Samantha-compact",
@@ -184,7 +204,7 @@ export default function HomeScreen() {
         setAISpeaking(false);
       },
     };
-    Speech.speak(text, options);
+    Speech.speak(textToSpeak, options);
   };
 
   useEffect(() => {
@@ -194,6 +214,15 @@ export default function HomeScreen() {
       lottieRef.current?.reset();
     }
   }, [AISpeaking]);
+
+  const handleLogout = async () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: async () => {
+        await logout();
+      }},
+    ]);
+  };
 
   return (
     <LinearGradient
@@ -224,44 +253,40 @@ export default function HomeScreen() {
         }}
       />
 
-      {/* Back arrow */}
-      {AIResponse && (
+      {/* User Info Header */}
+      <View style={styles.userHeader}>
+        {AIResponse && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              setIsRecording(false);
+              setAIResponse(false);
+              setText("");
+            }}
+          >
+            <AntDesign name="arrowleft" size={scale(20)} color="#fff" />
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.userInfo}>
+          <View style={styles.userAvatar}>
+            <FontAwesome name="user" size={scale(18)} color="#fff" />
+          </View>
+          <View style={styles.userDetails}>
+            <Text style={styles.userGreeting}>Hello!</Text>
+            <Text style={styles.userEmail}>{user?.email || 'User'}</Text>
+          </View>
+        </View>
+
         <TouchableOpacity
-          style={{
-            position: "absolute",
-            top: verticalScale(50),
-            left: scale(20),
-          }}
-          onPress={() => {
-            setIsRecording(false);
-            setAIResponse(false);
-            setText("");
-          }}
+          style={styles.logoutButton}
+          onPress={handleLogout}
         >
-          <AntDesign name="arrowleft" size={scale(20)} color="#fff" />
+          <AntDesign name="logout" size={scale(20)} color="#fff" />
         </TouchableOpacity>
-      )}
+      </View>
 
-      {/* Logout button */}
-      <TouchableOpacity
-        style={{
-          position: "absolute",
-          top: verticalScale(50),
-          right: scale(20),
-        }}
-        onPress={async () => {
-          Alert.alert('Logout', 'Are you sure you want to logout?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Logout', style: 'destructive', onPress: async () => {
-              await logout();
-            }},
-          ]);
-        }}
-      >
-        <AntDesign name="logout" size={scale(20)} color="#fff" />
-      </TouchableOpacity>
-
-      <View style={{ marginTop: verticalScale(-40) }}>
+      <View style={{ marginTop: verticalScale(20) }}>
         {loading ? (
           <TouchableOpacity>
             <LottieView
@@ -321,6 +346,8 @@ export default function HomeScreen() {
           </>
         )}
       </View>
+
+      {/* Status Text */}
       <View
         style={{
           alignItems: "center",
@@ -338,9 +365,15 @@ export default function HomeScreen() {
             lineHeight: 25,
           }}
         >
-          {loading ? "..." : text || "Press the microphone to start recording!"}
+          {loading
+            ? "Processing your request..."
+            : text || (isRecording
+              ? "Listening... Tap to stop"
+              : "Tap the microphone to start recording!")}
         </Text>
       </View>
+
+      {/* Action Buttons */}
       {AIResponse && (
         <View
           style={{
@@ -372,5 +405,49 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#131313",
+  },
+  userHeader: {
+    position: "absolute",
+    top: verticalScale(50),
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: scale(20),
+    zIndex: 10,
+  },
+  backButton: {
+    padding: scale(8),
+  },
+  userInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+  },
+  userAvatar: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: scale(10),
+  },
+  userDetails: {
+    alignItems: "flex-start",
+  },
+  userGreeting: {
+    color: "#fff",
+    fontSize: scale(14),
+    fontWeight: "500",
+  },
+  userEmail: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: scale(12),
+  },
+  logoutButton: {
+    padding: scale(8),
   },
 });
